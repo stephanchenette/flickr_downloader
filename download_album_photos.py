@@ -72,7 +72,7 @@ def add_exif_to_image(file_path, metadata):
                 270: metadata.get("title", "No Title")  # Exif tag for ImageDescription
             },
             "Exif": {
-                36867: metadata.get("datetaken", "0000:00:00 00:00:00"),  # Exif tag for DateTimeOriginal
+                36867: metadata.get("taken", "0000:00:00 00:00:00"),  # Exif tag for DateTimeOriginal
                 36868: formatted_dateuploaded  # Exif tag for DateTimeDigitized
             }
         }
@@ -120,6 +120,7 @@ def download_album_photos(album_id, album_name, base_directory, log_file):
             # Skip downloading if photo already exists
             if photo_already_downloaded(photo_id, album_directory):
                 print(f"Skipping already downloaded photo: {photo_id}")
+                delete_photo(photo_id)
                 continue
 
             title = sanitize_title(photo_id)
@@ -164,7 +165,7 @@ def download_album_photos(album_id, album_name, base_directory, log_file):
 if __name__ == "__main__":
     # List of albums to download (name and ID pairs)
     albums = [
-        {"name": "Beijing Pics", "id": "72157715429434398"}
+        {"name": "Pics", "id": "album_id"}
     ]
 
     # Base directory to save albums
