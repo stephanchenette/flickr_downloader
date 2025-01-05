@@ -100,72 +100,83 @@ def delete_photo(photo_id):
 
 
 def download_album_photos(album_id, album_name, base_directory, log_file):
-    try:
-        # Fetch album info
-        album = flickr_api.Photoset(id=album_id)
-        photos = album.getPhotos()
+    
+    album_has_photos = True
 
-        # Create a folder for the album
-        album_directory = os.path.join(base_directory, album_name)
-        if not os.path.exists(album_directory):
-            os.makedirs(album_directory)
+    while album_has_photos:
+        try:
+            # Fetch album info
+            album = flickr_api.Photoset(id=album_id)
+            photos = album.getPhotos()
 
-        downloaded_count = 0
+            if len(photos) == 0:
+                album_has_photos = False
+                break
 
-        # Download photos and metadata
-        for photo in photos:
-            photo_info = photo.getInfo()
-            photo_id = photo_info.get("id")
+            print(f"Album contains {len(photos)} photos.")
 
-            # Skip downloading if photo already exists
-            if photo_already_downloaded(photo_id, album_directory):
-                print(f"Skipping already downloaded photo: {photo_id}")
-                delete_photo(photo_id)
-                continue
+            # Create a folder for the album
+            album_directory = os.path.join(base_directory, album_name)
+            if not os.path.exists(album_directory):
+                os.makedirs(album_directory)
 
-            title = sanitize_title(photo_id)
-            sizes = photo.getSizes()
-            url = sizes.get("Original", sizes.get("Large", {})).get("source", None)
+            downloaded_count = 0
 
-            if url:
-                file_path = os.path.join(album_directory, f"{title}.jpg")
+            # Download photos and metadata
+            for photo in photos:
+                photo_info = photo.getInfo()
+                photo_id = photo_info.get("id")
 
-                print(f"Downloading: {title}")
-
-                # Download photo
-                response = requests.get(url, stream=True)
-                if response.status_code == 200:
-                    with open(file_path, "wb") as file:
-                        for chunk in response.iter_content(1024):
-                            file.write(chunk)
-
-                    # Add EXIF data to the photo
-                    add_exif_to_image(file_path, photo_info)
-                    downloaded_count += 1
-
-                    # Delete photo from Flickr
+                # Skip downloading if photo already exists
+                if photo_already_downloaded(photo_id, album_directory):
+                    print(f"Skipping already downloaded photo: {photo_id}")
                     delete_photo(photo_id)
+                    continue
+
+                title = sanitize_title(photo_id)
+                sizes = photo.getSizes()
+                url = sizes.get("Original", sizes.get("Large", {})).get("source", None)
+
+                if url:
+                    file_path = os.path.join(album_directory, f"{title}.jpg")
+
+                    print(f"Downloading: {title}")
+
+                    # Download photo
+                    response = requests.get(url, stream=True)
+                    if response.status_code == 200:
+                        with open(file_path, "wb") as file:
+                            for chunk in response.iter_content(1024):
+                                file.write(chunk)
+
+                        # Add EXIF data to the photo
+                        add_exif_to_image(file_path, photo_info)
+                        downloaded_count += 1
+
+                        # Delete photo from Flickr
+                        delete_photo(photo_id)
+                    else:
+                        error_message = f"Failed to download photo: {title}, URL: {url}"
+                        print(error_message)
+                        log_message(log_file, error_message)
+
                 else:
-                    error_message = f"Failed to download photo: {title}, URL: {url}"
+                    error_message = f"No URL found for photo: {title}"
                     print(error_message)
                     log_message(log_file, error_message)
 
-            else:
-                error_message = f"No URL found for photo: {title}"
-                print(error_message)
-                log_message(log_file, error_message)
-
-        print(f"All photos and metadata for album '{album_name}' downloaded to {album_directory}")
-        print(f"Total photos downloaded for album '{album_name}': {downloaded_count}")
-    except Exception as e:
-        error_message = f"Error processing album {album_name} (ID: {album_id}): {e}"
-        print(error_message)
-        log_message(log_file, error_message)
+            print(f"All photos and metadata for album '{album_name}' downloaded to {album_directory}")
+            print(f"Total photos downloaded for album '{album_name}': {downloaded_count}")
+        except Exception as e:
+            error_message = f"Error processing album {album_name} (ID: {album_id}): {e}"
+            print(error_message)
+            log_message(log_file, error_message)
+            break
 
 if __name__ == "__main__":
     # List of albums to download (name and ID pairs)
     albums = [
-        {"name": "Pics", "id": "album_id"}
+        {"name": "Album_1", "id": "Album_1_ID"}
     ]
 
     # Base directory to save albums
